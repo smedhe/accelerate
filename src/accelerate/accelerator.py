@@ -104,6 +104,7 @@ from .utils import (
     is_msamp_available,
     is_musa_available,
     is_npu_available,
+    is_qaic_available,
     is_torch_version,
     is_torch_xla_available,
     is_torchao_available,
@@ -162,6 +163,8 @@ if is_torch_xla_available():
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 
+if is_qaic_available(check_device=False):
+    import torch_qaic  # noqa: F401
 
 if is_npu_available(check_device=False):
     import torch_npu  # noqa: F401
@@ -567,7 +570,7 @@ class Accelerator:
             and self.distributed_type not in (DistributedType.DEEPSPEED, DistributedType.MEGATRON_LM)
         ):
             self.native_amp = True
-            supported_device = ("xpu", "cuda", "npu", "xla", "mlu", "musa", "hpu", "sdaa", "mps")
+            supported_device = ("xpu", "cuda", "npu", "xla", "mlu", "musa", "hpu", "sdaa", "mps", "qaic")
             if self.device.type not in supported_device or is_torch_xla_available(check_is_tpu=True):
                 raise ValueError(
                     f"fp16 mixed precision requires a device in {supported_device} (not {self.device.type!r})."
@@ -661,6 +664,7 @@ class Accelerator:
             DistributedType.MULTI_MLU,
             DistributedType.MULTI_SDAA,
             DistributedType.MULTI_MUSA,
+            DistributedType.MULTI_QAIC,
             DistributedType.MULTI_NPU,
             DistributedType.MULTI_XPU,
             DistributedType.MULTI_HPU,
@@ -1852,6 +1856,20 @@ class Accelerator:
                     raise ValueError(
                         "Your model contains `DTensor` parameters, which is incompatible with DDP. Maybe you loaded your model with `device_map='auto'`? Specify `device_map='cuda'` or 'xpu' or 'cpu' instead."
                     )
+            dp_enabled = False
+            tp_enabled = False
+            if self.parallelism_config:
+                dp_enabled = (
+                    self.parallelism_config.data_parallel_size == self.parallelism_config.dp_replicate_size
+                ) and (
+                    self.parallelism_config.dp_replicate_size > 1
+                )
+                tp_enabled = self.parallelism_config.tp_enabled
+            if self.multi_device and dp_enabled and (not self.is_fsdp2):
+                # if model_has_dtensor(model):
+                #     raise ValueError(
+                #         "Your model contains `DTensor` parameters, which is incompatible with DDP. Maybe you loaded your model with `device_map='auto'`? Specify `device_map='cuda'` or 'cpu' instead."
+                #     )
                 if any(p.requires_grad for p in model.parameters()):
                     kwargs = self.ddp_handler.to_kwargs() if self.ddp_handler is not None else {}
                     # TODO: Look at enabling native TP training directly with a proper config
