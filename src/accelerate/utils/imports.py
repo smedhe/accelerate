@@ -14,6 +14,7 @@
 
 import importlib
 import importlib.metadata
+import importlib.util
 import os
 import sys
 import warnings
@@ -135,6 +136,7 @@ def is_torch_xla_available(check_is_tpu=False, check_is_gpu=False):
         return torch_xla.runtime.device_type() == "TPU"
 
     return True
+
 
 
 def is_torchao_available():
@@ -387,6 +389,22 @@ def is_npu_available(check_device=False):
             return False
     return hasattr(torch, "npu") and torch.npu.is_available()
 
+@lru_cache
+def is_qaic_available(check_device=False):
+    "Checks if `torch_qaic` is installed and potentially if QAic is in the environment"
+    if importlib.util.find_spec("torch_qaic") is None:
+        return False
+
+    import torch_qaic  # noqa: F401
+
+    if check_device:
+        try:
+            # Will raise a RuntimeError if no QAic is found
+            _ = torch.qaic.device_count()
+            return torch.qaic.is_available()
+        except RuntimeError:
+            return False
+    return hasattr(torch, "qaic") and torch.qaic.is_available()
 
 @lru_cache
 def is_sdaa_available(check_device=False):

@@ -30,6 +30,7 @@ from .utils import (
 from .utils.imports import (
     is_mlu_available,
     is_musa_available,
+    is_qaic_available,
     is_npu_available,
 )
 from .utils.memory import clear_device_cache
@@ -37,7 +38,7 @@ from .utils.modeling import get_non_persistent_buffers
 from .utils.other import recursive_getattr
 
 
-_accelerate_added_attributes = ["to", "cuda", "npu", "xpu", "mlu", "sdaa", "musa"]
+_accelerate_added_attributes = ["to", "cuda", "npu", "xpu", "mlu", "sdaa", "musa", "qaic"]
 
 
 class ModelHook:
@@ -395,6 +396,8 @@ class AlignDevicesHook(ModelHook):
                         device = f"npu:{device}"
                     elif is_mlu_available():
                         device = f"mlu:{device}"
+                    elif is_qaic_available():
+                        device = f"qaic:{device}"
                     elif is_musa_available():
                         device = f"musa:{device}"
                 if device in self.tied_params_map[value_pointer]:

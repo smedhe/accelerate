@@ -33,6 +33,7 @@ from .utils import (
     get_pretty_name,
     is_cuda_available,
     is_hpu_available,
+    is_qaic_available,
     is_mlu_available,
     is_musa_available,
     is_sdaa_available,
@@ -163,6 +164,8 @@ def save_accelerator_state(
         states["torch_mlu_manual_seed"] = torch.mlu.get_rng_state_all()
     elif is_sdaa_available():
         states["torch_sdaa_manual_seed"] = torch.sdaa.get_rng_state_all()
+    elif is_qaic_available():
+        states["torch_qaic_manual_seed"] = torch.qaic.get_rng_state_all()
     elif is_musa_available():
         states["torch_musa_manual_seed"] = torch.musa.get_rng_state_all()
     if is_hpu_available():
@@ -298,6 +301,8 @@ def load_accelerator_state(
             torch.mlu.set_rng_state_all(states["torch_mlu_manual_seed"])
         elif is_sdaa_available():
             torch.sdaa.set_rng_state_all(states["torch_sdaa_manual_seed"])
+        elif is_qaic_available():
+            torch.qaic.set_rng_state_all(states["torch_qaic_manual_seed"])
         elif is_musa_available():
             torch.musa.set_rng_state_all(states["torch_musa_manual_seed"])
         else:

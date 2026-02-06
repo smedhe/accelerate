@@ -38,6 +38,7 @@ from .imports import (
     is_mps_available,
     is_musa_available,
     is_npu_available,
+    is_qaic_available,
     is_peft_available,
     is_sdaa_available,
     is_torch_xla_available,
@@ -48,6 +49,8 @@ from .offload import load_offloaded_weight, offload_weight, save_offload_index
 from .tqdm import is_tqdm_available, tqdm
 from .versions import is_torch_version
 
+if is_qaic_available(check_device=False):
+    import torch_qaic # noqa: F401
 
 if is_npu_available(check_device=False):
     import torch_npu  # noqa: F401
@@ -323,6 +326,8 @@ def set_module_tensor_to_device(
                 device = f"npu:{device}"
             elif is_mlu_available():
                 device = f"mlu:{device}"
+            elif is_qaic_available():
+                device = f"qaic:{device}"
             elif is_sdaa_available():
                 device = f"sdaa:{device}"
             elif is_musa_available():
@@ -750,7 +755,15 @@ def get_max_memory(max_memory: Optional[dict[Union[int, str], Union[int, str]]] 
     if max_memory is None:
         max_memory = {}
         # Make sure device is initialized on each device to have the right memory info.
-        if is_npu_available():
+        if is_qaic_available():
+            for i in range(torch.qaic.device_count()):
+                try:
+                    _ = torch.tensor(0, device=torch.device("qaic", i))
+                    max_memory[i] = torch.qaic.mem_get_info(i)[0]
+                except Exception:
+                    logger.info(f"Device {i} seems unavailable, Proceeding to check subsequent devices.")
+                    continue
+        elif is_npu_available():
             for i in range(torch.npu.device_count()):
                 try:
                     _ = torch.tensor(0, device=torch.device("npu", i))
@@ -821,11 +834,13 @@ def get_max_memory(max_memory: Optional[dict[Union[int, str], Union[int, str]]] 
     # As gpu/npu/xpu are represented by int, we need to sort them first.
     gpu_devices = [k for k in max_memory.keys() if isinstance(k, int)]
     gpu_devices.sort()
-    # check if gpu/npu/xpu devices are available and if not, throw a warning
+    # check if gpu/npu/xpu/qaic devices are available and if not, throw a warning
     if is_npu_available():
         num_devices = torch.npu.device_count()
     elif is_mlu_available():
         num_devices = torch.mlu.device_count()
+    elif is_qaic_available():
+        num_devices = torch.qaic.device_count()
     elif is_sdaa_available():
         num_devices = torch.sdaa.device_count()
     elif is_musa_available():
@@ -957,6 +972,8 @@ def get_balanced_memory(
 
     if is_npu_available():
         expected_device_type = "npu"
+    elif is_qaic_available():
+        expected_device_type = "qaic"
     elif is_mlu_available():
         expected_device_type = "mlu"
     elif is_sdaa_available():
@@ -1655,7 +1672,9 @@ def load_state_dict(checkpoint_file, device_map=None):
                 device = list(device_map.values())[0]
                 target_device = device
                 if isinstance(device, int):
-                    if is_npu_available():
+                    if is_qaic_available():
+                        target_device = f"qaic:{device}"
+                    elif is_npu_available():
                         target_device = f"npu:{device}"
                     elif is_hpu_available():
                         target_device = "hpu"
@@ -1691,7 +1710,9 @@ def load_state_dict(checkpoint_file, device_map=None):
             for device in devices:
                 target_device = device
                 if isinstance(device, int):
-                    if is_npu_available():
+                    if is_qaic_available():
+                        target_device = f"qaic:{device}"
+                    elif is_npu_available():
                         target_device = f"npu:{device}"
                     elif is_hpu_available():
                         target_device = "hpu"
@@ -2078,6 +2099,7 @@ def get_mixed_precision_context_manager(native_amp: bool = False, autocast_kwarg
             DistributedType.MULTI_MUSA,
             DistributedType.MULTI_NPU,
             DistributedType.MULTI_XPU,
+            DistributedType.MULTI_QAIC,
             DistributedType.MULTI_HPU,
             DistributedType.FSDP,
             DistributedType.XLA,
@@ -2116,6 +2138,8 @@ def get_grad_scaler(distributed_type: DistributedType = None, **kwargs):
         return torch.musa.amp.GradScaler(**kwargs)
     elif is_npu_available():
         return torch.npu.amp.GradScaler(**kwargs)
+    elif is_qaic_available():
+        return torch.qaic.amp.GradScaler(**kwargs)
     elif is_hpu_available():
         return torch.amp.GradScaler("hpu", **kwargs)
     elif is_xpu_available():

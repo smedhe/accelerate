@@ -49,6 +49,7 @@ from .imports import (
     is_mlu_available,
     is_msamp_available,
     is_musa_available,
+    is_qaic_available,
     is_npu_available,
     is_torchao_available,
     is_transformer_engine_available,
@@ -609,6 +610,7 @@ class DistributedType(str, enum.Enum):
         - **MULTI_MLU** -- Distributed on multiple MLUs.
         - **MULTI_SDAA** -- Distributed on multiple SDAAs.
         - **MULTI_MUSA** -- Distributed on multiple MUSAs.
+        - **MULTI_QAIC** -- Distributed on multiple QAICs.
         - **MULTI_NPU** -- Distributed on multiple NPUs.
         - **MULTI_XPU** -- Distributed on multiple XPUs.
         - **MULTI_HPU** -- Distributed on multiple HPUs.
@@ -624,6 +626,7 @@ class DistributedType(str, enum.Enum):
     MULTI_MLU = "MULTI_MLU"
     MULTI_SDAA = "MULTI_SDAA"
     MULTI_MUSA = "MULTI_MUSA"
+    MULTI_QAIC = "MULTI_QAIC"
     MULTI_XPU = "MULTI_XPU"
     DEEPSPEED = "DEEPSPEED"
     FSDP = "FSDP"
@@ -784,6 +787,7 @@ class RNGType(BaseEnum):
     MLU = "mlu"
     SDAA = "sdaa"
     MUSA = "musa"
+    QAIC = "qaic"
     NPU = "npu"
     XLA = "xla"
     XPU = "xpu"
@@ -1965,6 +1969,8 @@ class FullyShardedDataParallelPlugin:
                 device = torch.mlu.current_device()
             elif is_musa_available():
                 device = torch.musa.current_device()
+            elif is_qaic_available():
+                device = torch.qaic.current_device()
             elif is_cuda_available():
                 device = torch.cuda.current_device()
             elif is_xpu_available():
@@ -1973,7 +1979,7 @@ class FullyShardedDataParallelPlugin:
                 device = torch.hpu.current_device()
             else:
                 raise RuntimeError(
-                    "There are currently no available devices found, must be one of 'XPU', 'CUDA', 'MLU', 'NPU', 'MUSA', or 'HPU'."
+                    "There are currently no available devices found, must be one of 'XPU', 'CUDA', 'MLU', 'QAIC', 'NPU', 'MUSA', or 'HPU'."
                 )
             # Create a function that will be used to initialize the parameters of the model
             # when using `sync_module_states`

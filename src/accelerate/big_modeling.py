@@ -42,6 +42,7 @@ from .utils import (
     is_bnb_available,
     is_mlu_available,
     is_musa_available,
+    is_qaic_available,
     is_npu_available,
     is_sdaa_available,
     is_xpu_available,
@@ -471,6 +472,8 @@ def dispatch_model(
             model.npu = add_warning(model.npu, model)
         elif is_mlu_available():
             model.mlu = add_warning(model.mlu, model)
+        elif is_qaic_available():
+            model.qaic = add_warning(model.qaic, model)
         elif is_sdaa_available():
             model.sdaa = add_warning(model.sdaa, model)
         elif is_musa_available():
@@ -495,6 +498,8 @@ def dispatch_model(
             device = f"npu:{device}"
         elif is_mlu_available() and isinstance(device, int):
             device = f"mlu:{device}"
+        elif is_qaic_available() and isinstance(device, int):
+            device = f"qaic:{device}"
         elif is_sdaa_available() and isinstance(device, int):
             device = f"sdaa:{device}"
         elif is_musa_available() and isinstance(device, int):

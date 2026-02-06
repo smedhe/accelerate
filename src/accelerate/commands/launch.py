@@ -43,6 +43,7 @@ from accelerate.utils import (
     is_mlu_available,
     is_musa_available,
     is_npu_available,
+    is_qaic_available,
     is_rich_available,
     is_sagemaker_available,
     is_sdaa_available,
@@ -1225,6 +1226,7 @@ def _validate_launch_command(args):
                 if defaults.distributed_type
                 in (
                     DistributedType.MULTI_GPU,
+                    DistributedType.MULTI_QAIC,
                     DistributedType.MULTI_NPU,
                     DistributedType.MULTI_MLU,
                     DistributedType.MULTI_SDAA,
@@ -1303,6 +1305,8 @@ def _validate_launch_command(args):
                 args.num_processes = torch.mlu.device_count()
             elif is_sdaa_available():
                 args.num_processes = torch.sdaa.device_count()
+            elif is_qaic_available():
+                args.num_processes = torch.qaic.device_count()
             elif is_musa_available():
                 args.num_processes = torch.musa.device_count()
             elif is_npu_available():
@@ -1320,6 +1324,7 @@ def _validate_launch_command(args):
             and (
                 (is_xpu_available() and torch.xpu.device_count() > 1)
                 or (is_npu_available() and torch.npu.device_count() > 1)
+                or (is_qaic_available() and torch.qaic.device_count() > 1)
                 or (is_hpu_available() and torch.hpu.device_count() > 1)
                 or (is_mlu_available() and torch.mlu.device_count() > 1)
                 or (is_sdaa_available() and torch.sdaa.device_count() > 1)
