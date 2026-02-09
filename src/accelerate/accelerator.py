@@ -1880,8 +1880,24 @@ class Accelerator:
                             device_ids, output_device = [self.local_process_index], self.local_process_index
                     else:
                         device_ids, output_device = None, None
+
+                    if self.parallelism_config and self.parallelism_config.device_mesh is not None:
+                        try:
+                            dp_pg = self.parallelism_config.device_mesh.get_group("dp_replicate")
+                            kwargs["process_group"] = dp_pg
+                        except Exception as e:
+                            logger.warning(
+                                "Couldn't set the process group for DDP from the device mesh. Proceeding with the default process group."
+                            )
+                    if tp_enabled:
+                        from torch.distributed.tensor.parallel.ddp import _pre_dp_module_transform
+                        _pre_dp_module_transform(model)
+                        
+                    # model = torch.nn.parallel.DistributedDataParallel(
+                    #     model, device_ids=device_ids, output_device=output_device, **kwargs
+                    # )
                     model = torch.nn.parallel.DistributedDataParallel(
-                        model, device_ids=device_ids, output_device=output_device, **kwargs
+                        model,  **kwargs
                     )
                     if self.ddp_handler is not None:
                         self.ddp_handler.register_comm_hook(model)
