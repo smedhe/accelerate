@@ -1893,12 +1893,10 @@ class Accelerator:
                         from torch.distributed.tensor.parallel.ddp import _pre_dp_module_transform
                         _pre_dp_module_transform(model)
                         
-                    # model = torch.nn.parallel.DistributedDataParallel(
-                    #     model, device_ids=device_ids, output_device=output_device, **kwargs
-                    # )
                     model = torch.nn.parallel.DistributedDataParallel(
-                        model,  **kwargs
+                        model, device_ids=device_ids, output_device=output_device, **kwargs
                     )
+
                     if self.ddp_handler is not None:
                         self.ddp_handler.register_comm_hook(model)
             elif self.parallelism_config and self.parallelism_config.tp_enabled:
