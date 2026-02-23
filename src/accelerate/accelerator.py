@@ -1884,7 +1884,7 @@ class Accelerator:
                     if self.parallelism_config and self.parallelism_config.device_mesh is not None:
                         try:
                             dp_pg = self.parallelism_config.device_mesh.get_group("dp_replicate")
-                            kwargs["process_group"] = dp_pg
+                            # kwargs["process_group"] = dp_pg
                         except Exception as e:
                             logger.warning(
                                 "Couldn't set the process group for DDP from the device mesh. Proceeding with the default process group."
