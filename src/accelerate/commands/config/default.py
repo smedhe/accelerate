@@ -24,6 +24,7 @@ from ...utils import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_sdaa_available,
     is_xpu_available,
 )
@@ -101,6 +102,14 @@ def write_basic_config(mixed_precision="no", save_location: str = default_json_c
         config["use_cpu"] = False
         if num_gpus > 1:
             config["distributed_type"] = "MULTI_GPU"
+        else:
+            config["distributed_type"] = "NO"
+    elif is_qaic_available():
+        num_qaics = torch.qaic.device_count()
+        config["num_processes"] = num_qaics
+        config["use_cpu"] = False
+        if num_qaics > 1:
+            config["distributed_type"] = "MULTI_QAIC"
         else:
             config["distributed_type"] = "NO"
     elif is_xpu_available():

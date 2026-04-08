@@ -43,6 +43,7 @@ from accelerate.utils import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_rich_available,
     is_sagemaker_available,
     is_sdaa_available,
@@ -1229,6 +1230,7 @@ def _validate_launch_command(args):
                     DistributedType.MULTI_MLU,
                     DistributedType.MULTI_SDAA,
                     DistributedType.MULTI_MUSA,
+                    DistributedType.MULTI_QAIC,
                     DistributedType.MULTI_XPU,
                     DistributedType.MULTI_HPU,
                     DistributedType.MULTI_NEURON,
@@ -1308,6 +1310,8 @@ def _validate_launch_command(args):
                 args.num_processes = torch.musa.device_count()
             elif is_npu_available():
                 args.num_processes = torch.npu.device_count()
+            elif is_qaic_available():
+                args.num_processes = torch.qaic.device_count()
             elif is_hpu_available():
                 args.num_processes = torch.hpu.device_count()
             elif is_neuron_available():
@@ -1328,6 +1332,7 @@ def _validate_launch_command(args):
                 or (is_sdaa_available() and torch.sdaa.device_count() > 1)
                 or (is_musa_available() and torch.musa.device_count() > 1)
                 or (is_neuron_available() and torch.neuron.device_count() > 1)
+                or (is_qaic_available() and torch.qaic.device_count() > 1)
                 or (torch.cuda.is_available() and torch.cuda.device_count() > 1)
             )
         ):

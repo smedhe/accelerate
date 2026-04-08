@@ -36,6 +36,7 @@ from .utils import (
     is_mlu_available,
     is_musa_available,
     is_neuron_available,
+    is_qaic_available,
     is_sdaa_available,
     is_torch_version,
     is_torch_xla_available,
@@ -162,6 +163,8 @@ def save_accelerator_state(
         states["torch_xpu_manual_seed"] = torch.xpu.get_rng_state_all()
     if is_mlu_available():
         states["torch_mlu_manual_seed"] = torch.mlu.get_rng_state_all()
+    elif is_qaic_available():
+        states["torch_qaic_manual_seed"] = torch.qaic.get_rng_state_all()
     elif is_sdaa_available():
         states["torch_sdaa_manual_seed"] = torch.sdaa.get_rng_state_all()
     elif is_musa_available():
@@ -299,6 +302,8 @@ def load_accelerator_state(
             torch.xpu.set_rng_state_all(states["torch_xpu_manual_seed"])
         if is_mlu_available():
             torch.mlu.set_rng_state_all(states["torch_mlu_manual_seed"])
+        elif is_qaic_available():
+            torch.qaic.set_rng_state_all(states["torch_qaic_manual_seed"])
         elif is_sdaa_available():
             torch.sdaa.set_rng_state_all(states["torch_sdaa_manual_seed"])
         elif is_musa_available():

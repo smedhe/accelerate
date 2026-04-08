@@ -32,6 +32,7 @@ from .imports import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_sdaa_available,
     is_xpu_available,
 )
@@ -53,6 +54,8 @@ def clear_device_cache(garbage_collection=False):
         torch.sdaa.empty_cache()
     elif is_musa_available():
         torch.musa.empty_cache()
+    elif is_qaic_available():
+        torch.qaic.empty_cache()
     elif is_npu_available():
         torch.npu.empty_cache()
     elif is_mps_available(min_version="2.0"):

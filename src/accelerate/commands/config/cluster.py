@@ -28,6 +28,7 @@ from ...utils import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_sdaa_available,
     is_torchao_available,
     is_transformer_engine_available,
@@ -66,6 +67,7 @@ def get_cluster_input():
             "multi-HPU",
             "multi-GPU",
             "multi-NPU",
+            "multi-QAIC",
             "multi-MLU",
             "multi-SDAA",
             "multi-MUSA",
@@ -91,6 +93,7 @@ def get_cluster_input():
         DistributedType.MULTI_SDAA,
         DistributedType.MULTI_MUSA,
         DistributedType.MULTI_NPU,
+        DistributedType.MULTI_QAIC,
         DistributedType.MULTI_XPU,
         DistributedType.MULTI_CPU,
         DistributedType.MULTI_HPU,
@@ -219,6 +222,7 @@ def get_cluster_input():
             DistributedType.MULTI_HPU,
             DistributedType.MULTI_NPU,
             DistributedType.MULTI_MLU,
+            DistributedType.MULTI_QAIC,
             DistributedType.MULTI_SDAA,
             DistributedType.MULTI_MUSA,
             DistributedType.MULTI_NEURON,
@@ -381,6 +385,7 @@ def get_cluster_input():
         DistributedType.MULTI_MLU,
         DistributedType.MULTI_SDAA,
         DistributedType.MULTI_MUSA,
+        DistributedType.MULTI_QAIC,
         DistributedType.MULTI_XPU,
         DistributedType.MULTI_HPU,
         DistributedType.MULTI_NEURON,
@@ -635,6 +640,7 @@ def get_cluster_input():
         DistributedType.MULTI_SDAA,
         DistributedType.MULTI_MUSA,
         DistributedType.MULTI_NPU,
+        DistributedType.MULTI_QAIC,
         DistributedType.MULTI_NEURON,
         DistributedType.XLA,
     ]:
@@ -676,6 +682,7 @@ def get_cluster_input():
             DistributedType.MULTI_NPU,
             DistributedType.MULTI_XPU,
             DistributedType.MULTI_HPU,
+            DistributedType.MULTI_QAIC,
             DistributedType.MULTI_NEURON,
             DistributedType.NO,
         ]
@@ -684,6 +691,8 @@ def get_cluster_input():
     ):
         if is_npu_available():
             machine_type = "NPU(s)"
+        elif is_qaic_available():
+            machine_type = "QAIC(s)"
         elif is_mlu_available():
             machine_type = "MLU(s)"
         elif is_sdaa_available():

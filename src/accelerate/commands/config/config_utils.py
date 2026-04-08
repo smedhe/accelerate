@@ -78,6 +78,7 @@ def _convert_distributed_mode(value):
             "MULTI_HPU",
             "MULTI_GPU",
             "MULTI_NPU",
+            "MULTI_QAIC",
             "MULTI_MLU",
             "MULTI_SDAA",
             "MULTI_MUSA",

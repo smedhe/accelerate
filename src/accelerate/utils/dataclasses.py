@@ -610,6 +610,7 @@ class DistributedType(str, enum.Enum):
         - **MULTI_SDAA** -- Distributed on multiple SDAAs.
         - **MULTI_MUSA** -- Distributed on multiple MUSAs.
         - **MULTI_NPU** -- Distributed on multiple NPUs.
+        - **MULTI_QAIC** -- Distributed on multiple QAICs.
         - **MULTI_XPU** -- Distributed on multiple XPUs.
         - **MULTI_HPU** -- Distributed on multiple HPUs.
         - **MULTI_NEURON** -- Distributed on multiple Neuron cores.
@@ -622,6 +623,7 @@ class DistributedType(str, enum.Enum):
     MULTI_CPU = "MULTI_CPU"
     MULTI_GPU = "MULTI_GPU"
     MULTI_NPU = "MULTI_NPU"
+    MULTI_QAIC = "MULTI_QAIC"
     MULTI_MLU = "MULTI_MLU"
     MULTI_SDAA = "MULTI_SDAA"
     MULTI_MUSA = "MULTI_MUSA"
@@ -785,6 +787,7 @@ class RNGType(BaseEnum):
     CUDA = "cuda"
     MLU = "mlu"
     SDAA = "sdaa"
+    QAIC = "qaic"
     MUSA = "musa"
     NPU = "npu"
     XLA = "xla"

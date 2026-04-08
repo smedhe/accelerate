@@ -27,6 +27,7 @@ from .imports import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_sdaa_available,
     is_torch_xla_available,
     is_xpu_available,
@@ -58,6 +59,8 @@ def set_seed(seed: int, device_specific: bool = False, deterministic: bool = Fal
         torch.xpu.manual_seed_all(seed)
     elif is_npu_available():
         torch.npu.manual_seed_all(seed)
+    elif is_qaic_available():
+        torch.qaic.manual_seed_all(seed)
     elif is_mlu_available():
         torch.mlu.manual_seed_all(seed)
     elif is_sdaa_available():
@@ -90,6 +93,9 @@ def synchronize_rng_state(rng_type: Optional[RNGType] = None, generator: Optiona
     elif rng_type == RNGType.NPU:
         assert is_npu_available(), "Can't synchronize NPU seeds on an environment without NPUs."
         rng_state = torch.npu.get_rng_state()
+    elif rng_type == RNGType.QAIC:
+        assert is_qaic_available(), "Can't synchronize QAIC seeds on an environment without QAICs."
+        rng_state = torch.qaic.get_rng_state()
     elif rng_type == RNGType.MLU:
         assert is_mlu_available(), "Can't synchronize MLU seeds on an environment without MLUs."
         rng_state = torch.mlu.get_rng_state()
@@ -125,6 +131,7 @@ def synchronize_rng_state(rng_type: Optional[RNGType] = None, generator: Optiona
         or state.distributed_type == DistributedType.MULTI_SDAA
         or state.distributed_type == DistributedType.MULTI_MUSA
         or state.distributed_type == DistributedType.MULTI_NPU
+        or state.distributed_type == DistributedType.MULTI_QAIC
         or state.distributed_type == DistributedType.MULTI_XPU
         or state.distributed_type == DistributedType.MULTI_HPU
         or state.distributed_type == DistributedType.MULTI_NEURON
@@ -142,6 +149,8 @@ def synchronize_rng_state(rng_type: Optional[RNGType] = None, generator: Optiona
         torch.cuda.set_rng_state(rng_state)
     elif rng_type == RNGType.NPU:
         torch.npu.set_rng_state(rng_state)
+    elif rng_type == RNGType.QAIC:
+        torch.qaic.set_rng_state(rng_state)
     elif rng_type == RNGType.MLU:
         torch.mlu.set_rng_state(rng_state)
     elif rng_type == RNGType.SDAA:

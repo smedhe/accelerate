@@ -44,6 +44,7 @@ from .utils import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_sdaa_available,
     is_torch_xla_available,
     is_xccl_available,
@@ -71,6 +72,8 @@ if is_musa_available(check_device=False):
 if is_npu_available(check_device=False):
     import torch_npu  # noqa: F401
 
+if is_qaic_available(check_device=False):
+    import torch_qaic  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -404,6 +407,7 @@ class PartialState:
             DistributedType.MULTI_NPU,
             DistributedType.MULTI_XPU,
             DistributedType.MULTI_CPU,
+            DistributedType.MULTI_QAIC,
             DistributedType.MULTI_HPU,
             DistributedType.MULTI_NEURON,
             DistributedType.DEEPSPEED,
@@ -727,6 +731,7 @@ class PartialState:
         - SDAA if `is_sdaa_available()`
         - MUSA if `is_musa_available()`
         - NPU if `is_npu_available()`
+        - QAIC if `is_qaic_available()`
         - HPU if `is_hpu_available()`
         - NEURON if `is_neuron_available()`
         - CPU otherwise
@@ -744,6 +749,8 @@ class PartialState:
         # See issue #3020: https://github.com/huggingface/accelerate/issues/3020
         elif is_npu_available():
             return torch.device("npu")
+        elif is_qaic_available():
+            return torch.device("qaic")
         elif is_hpu_available():
             return torch.device("hpu")
         elif torch.cuda.is_available():
@@ -792,6 +799,10 @@ class PartialState:
                 if backend is None:
                     backend = "nccl"
                 distributed_type = DistributedType.MULTI_GPU
+            elif torch.qaic.is_available():
+                if backend is None:
+                    backend = "qccl"
+                distributed_type = DistributedType.MULTI_QAIC
             elif is_xpu_available() and is_xccl_available():
                 if backend is None:
                     backend = "xccl"
@@ -829,7 +840,7 @@ class PartialState:
             self.device = torch.device("cpu") if self._cpu else self.default_device
             return
         device = str(self.distributed_type).split(".")[-1].replace("MULTI_", "").lower()
-        if device not in ("cpu", "gpu", "mlu", "musa", "npu", "xpu", "xla", "hpu", "sdaa", "neuron"):
+        if device not in ("cpu", "gpu", "mlu", "musa", "npu", "xpu", "xla", "hpu", "sdaa", "neuron", "qaic"):
             raise ValueError(
                 f"Can't set device for {self.distributed_type} ({device}), verify we should be calling `_set_device()` for it!"
             )
@@ -991,6 +1002,7 @@ class AcceleratorState:
                 DistributedType.MULTI_MUSA,
                 DistributedType.MULTI_NPU,
                 DistributedType.MULTI_XPU,
+                DistributedType.MULTI_QAIC,
                 DistributedType.MULTI_HPU,
                 DistributedType.MULTI_NEURON,
             ]:

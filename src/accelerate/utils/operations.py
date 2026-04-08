@@ -29,6 +29,7 @@ from .constants import TORCH_DISTRIBUTED_OPERATION_TYPES
 from .dataclasses import DistributedType, TensorInformation
 from .imports import (
     is_npu_available,
+    is_qaic_available,
     is_torch_distributed_available,
     is_torch_xla_available,
 )
@@ -148,7 +149,9 @@ def send_to_device(tensor, device, non_blocking=False, skip_keys=None):
     """
     if is_torch_tensor(tensor) or hasattr(tensor, "to"):
         # `torch.Tensor.to("npu")` could not find context when called for the first time (see this [issue](https://gitee.com/ascend/pytorch/issues/I8KECW?from=project-issue)).
-        if device == "npu":
+        if device == "qaic":
+            device = "qaic:0"
+        elif device == "npu":
             device = "npu:0"
         try:
             return tensor.to(device, non_blocking=non_blocking)
@@ -160,6 +163,9 @@ def send_to_device(tensor, device, non_blocking=False, skip_keys=None):
             if is_npu_available():
                 if isinstance(device, int):
                     device = f"npu:{device}"
+            elif is_qaic_available():
+                if isinstance(device, int):
+                    device = f"qaic:{device}"
             else:
                 raise error
         try:

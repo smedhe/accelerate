@@ -31,6 +31,7 @@ from ..utils import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_sdaa_available,
     is_xpu_available,
 )
@@ -59,11 +60,14 @@ def env_command(args):
     pt_sdaa_available = is_sdaa_available()
     pt_musa_available = is_musa_available()
     pt_npu_available = is_npu_available()
+    pt_qaic_available = is_qaic_available()
     pt_neuron_available = is_neuron_available()
 
     accelerator = "N/A"
     if pt_cuda_available:
         accelerator = "CUDA"
+    elif pt_qaic_available:
+        accelerator = "QAIC"
     elif pt_xpu_available:
         accelerator = "XPU"
     elif pt_mlu_available:
@@ -105,6 +109,8 @@ def env_command(args):
         info["GPU type"] = torch.cuda.get_device_name()
     elif pt_xpu_available:
         info["XPU type"] = torch.xpu.get_device_name()
+    elif pt_qaic_available:
+        info["QAIC type"] = torch.qaic.get_device_name()
     elif pt_mlu_available:
         info["MLU type"] = torch.mlu.get_device_name()
     elif pt_sdaa_available:

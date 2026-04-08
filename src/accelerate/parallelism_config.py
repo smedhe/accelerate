@@ -333,12 +333,21 @@ class ParallelismConfig:
                 "Please set either cp_size=1 or sp_size=1."
             )
 
-        if (self.tp_size > 1 or self.cp_size > 1) and self.dp_replicate_size > 1 and self.dp_shard_size == 1:
-            raise ValueError(
-                "Tensor/Context parallelism (tp/cp_size > 1) cannot be used with pure data parallelism (dp_replicate_size > 1 and dp_shard_size == 1). "
-                "Please set dp_shard_size > 1 and dp_replicate_size == 1 to compose FSDP + TP/CP for 2D parallel, "
-                "or set dp_replicate_size == 1 and dp_shard_size > 1 to compose HSDP + TP/CP for 3D parallel."
-            )
+        if self.dp_replicate_size > 1 and self.dp_shard_size == 1:
+            if self.tp_size > 1 and self.cp_size == 1 and self.sp_size == 1:
+                pass
+            elif self.cp_size > 1:
+                raise ValueError(
+                    "Context parallelism (cp_size > 1) cannot be combined with pure data parallelism "
+                    "Please set dp_shard_size > 1 and dp_replicate_size == 1 to compose FSDP + CP for 2D parallel, "
+                    "or set dp_replicate_size == 1 and dp_shard_size > 1 to compose HSDP + CP for 3D parallel."
+                )
+            else:
+                raise ValueError(
+                    "`dp_replicate_size > 1` and `dp_shard_size == 1` is an invalid configuration, to use pure DP, use"
+                    "`DistributedDataParallelKwargs` instead."
+                )
+
         self._sizes = {
             "dp_replicate": self.dp_replicate_size,
             "dp_shard": self.dp_shard_size,

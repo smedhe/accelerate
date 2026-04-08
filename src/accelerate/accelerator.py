@@ -103,6 +103,7 @@ from .utils import (
     is_msamp_available,
     is_musa_available,
     is_npu_available,
+    is_qaic_available,
     is_torch_version,
     is_torch_xla_available,
     is_torchao_available,
@@ -165,6 +166,8 @@ if is_torch_xla_available():
 if is_npu_available(check_device=False):
     import torch_npu  # noqa: F401
 
+if is_qaic_available(check_device=False):
+    import torch_qaic  # noqa: F401
 
 try:
     from torch.optim.lr_scheduler import LRScheduler
@@ -566,7 +569,7 @@ class Accelerator:
             and self.distributed_type not in (DistributedType.DEEPSPEED, DistributedType.MEGATRON_LM)
         ):
             self.native_amp = True
-            supported_device = ("xpu", "cuda", "npu", "xla", "mlu", "musa", "hpu", "sdaa", "mps")
+            supported_device = ("xpu", "cuda", "npu", "xla", "mlu", "musa", "hpu", "sdaa", "mps", "qaic")
             if self.device.type not in supported_device or is_torch_xla_available(check_is_tpu=True):
                 raise ValueError(
                     f"fp16 mixed precision requires a device in {supported_device} (not {self.device.type!r})."
@@ -661,6 +664,7 @@ class Accelerator:
             DistributedType.MULTI_SDAA,
             DistributedType.MULTI_MUSA,
             DistributedType.MULTI_NPU,
+            DistributedType.MULTI_QAIC,
             DistributedType.MULTI_XPU,
             DistributedType.MULTI_HPU,
             DistributedType.MULTI_NEURON,
@@ -1863,12 +1867,21 @@ class Accelerator:
         elif device_placement and not self.verify_device_map(model):
             model = model.to(self.device)
         if not evaluation_mode:
-            if self.multi_device and not (self.parallelism_config and self.parallelism_config.tp_enabled):
-                if model_has_dtensor(model):
-                    raise ValueError(
-                        "Your model contains `DTensor` parameters, which is incompatible with DDP. Maybe you loaded your model with `device_map='auto'`? Specify `device_map='cuda'` or 'xpu' or 'cpu' instead."
-                    )
+            dp_enabled = False
+            tp_enabled = False
+            if self.parallelism_config:
+                dp_enabled = (
+                    self.parallelism_config.data_parallel_size == self.parallelism_config.dp_replicate_size
+                ) and (self.parallelism_config.dp_replicate_size > 1)
+                tp_enabled = self.parallelism_config.tp_enabled
+            # DDP: `ParallelismConfig` pure `dp_replicate` (incl. TP+DDP), or classic multi-GPU without any mesh config.
+            wrap_ddp = self.multi_device and (not self.is_fsdp2) and (dp_enabled or self.parallelism_config is None)
+            if wrap_ddp:
                 if any(p.requires_grad for p in model.parameters()):
+                    if not tp_enabled and model_has_dtensor(model):
+                        raise ValueError(
+                            "Your model contains `DTensor` parameters, which is incompatible with DDP. Maybe you loaded your model with `device_map='auto'`? Specify `device_map='cuda'` or 'xpu' or 'cpu' instead."
+                        )
                     kwargs = self.ddp_handler.to_kwargs() if self.ddp_handler is not None else {}
                     # TODO: Look at enabling native TP training directly with a proper config
                     if os.environ.get("ACCELERATE_BYPASS_DEVICE_MAP", "false") != "true":
@@ -1878,12 +1891,26 @@ class Accelerator:
                             device_ids, output_device = [self.local_process_index], self.local_process_index
                     else:
                         device_ids, output_device = None, None
+
+                    if self.parallelism_config and self.parallelism_config.device_mesh is not None:
+                        try:
+                            dp_pg = self.parallelism_config.device_mesh.get_group("dp_replicate")
+                            kwargs["process_group"] = dp_pg
+                        except Exception:
+                            logger.warning(
+                                "Couldn't set the process group for DDP from the device mesh. Proceeding with the default process group."
+                            )
+                    if tp_enabled:
+                        from torch.distributed.tensor.parallel.ddp import _pre_dp_module_transform
+
+                        _pre_dp_module_transform(model)
+
                     model = torch.nn.parallel.DistributedDataParallel(
                         model, device_ids=device_ids, output_device=output_device, **kwargs
                     )
                     if self.ddp_handler is not None:
                         self.ddp_handler.register_comm_hook(model)
-            elif self.parallelism_config and self.parallelism_config.tp_enabled:
+            elif self.parallelism_config and self.parallelism_config.tp_enabled and not dp_enabled:
                 if not hasattr(model, "tp_size"):
                     raise NotImplementedError(
                         "Model should undergo tensor parallel before passing it to accelerate."

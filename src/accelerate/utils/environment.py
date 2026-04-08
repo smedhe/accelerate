@@ -106,7 +106,7 @@ def get_current_device_type() -> tuple[str, str]:
     before forking can cause errors.
 
     The device detection order follows the same priority as state.py:_prepare_backend():
-    MLU -> SDAA -> MUSA -> NPU -> HPU -> CUDA -> XPU
+    MLU -> SDAA -> MUSA -> NPU -> HPU -> CUDA -> QAIC ->  XPU
 
     Returns:
         tuple[str, str]: A tuple of (device_type, distributed_type)
@@ -142,6 +142,8 @@ def get_current_device_type() -> tuple[str, str]:
         return "hpu", "MULTI_HPU"
     elif torch.cuda.is_available():
         return "cuda", "MULTI_GPU"
+    elif torch.qaic.is_available():
+        return "qaic", "MULTI_QAIC"
     elif is_xpu_available():
         return "xpu", "MULTI_XPU"
     elif is_neuron_available():
