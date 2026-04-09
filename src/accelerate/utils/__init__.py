@@ -115,6 +115,7 @@ from .imports import (
     is_musa_available,
     is_neuron_available,
     is_npu_available,
+    is_qaic_available,
     is_pandas_available,
     is_peft_available,
     is_pippy_available,
