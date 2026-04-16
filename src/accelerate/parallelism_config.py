@@ -342,11 +342,6 @@ class ParallelismConfig:
                     "Please set dp_shard_size > 1 and dp_replicate_size == 1 to compose FSDP + CP for 2D parallel, "
                     "or set dp_replicate_size == 1 and dp_shard_size > 1 to compose HSDP + CP for 3D parallel."
                 )
-            else:
-                raise ValueError(
-                    "`dp_replicate_size > 1` and `dp_shard_size == 1` is an invalid configuration, to use pure DP, use"
-                    "`DistributedDataParallelKwargs` instead."
-                )
 
         self._sizes = {
             "dp_replicate": self.dp_replicate_size,

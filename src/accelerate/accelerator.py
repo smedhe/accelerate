@@ -1900,10 +1900,10 @@ class Accelerator:
                             logger.warning(
                                 "Couldn't set the process group for DDP from the device mesh. Proceeding with the default process group."
                             )
-                    if tp_enabled:
-                        from torch.distributed.tensor.parallel.ddp import _pre_dp_module_transform
+                    # if tp_enabled:
+                    #     from torch.distributed.tensor.parallel.ddp import _pre_dp_module_transform
 
-                        _pre_dp_module_transform(model)
+                    #     _pre_dp_module_transform(model)
 
                     model = torch.nn.parallel.DistributedDataParallel(
                         model, device_ids=device_ids, output_device=output_device, **kwargs
