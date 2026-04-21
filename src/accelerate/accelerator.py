@@ -1867,21 +1867,22 @@ class Accelerator:
         elif device_placement and not self.verify_device_map(model):
             model = model.to(self.device)
         if not evaluation_mode:
-            dp_enabled = False
-            tp_enabled = False
-            if self.parallelism_config:
-                dp_enabled = (
-                    self.parallelism_config.data_parallel_size == self.parallelism_config.dp_replicate_size
-                ) and (self.parallelism_config.dp_replicate_size > 1)
-                tp_enabled = self.parallelism_config.tp_enabled
-            # DDP: `ParallelismConfig` pure `dp_replicate` (incl. TP+DDP), or classic multi-GPU without any mesh config.
-            wrap_ddp = self.multi_device and (not self.is_fsdp2) and (dp_enabled or self.parallelism_config is None)
-            if wrap_ddp:
+            pc = self.parallelism_config
+            tp_enabled = pc is not None and pc.tp_enabled
+            tp_ddp_enabled = (
+                pc is not None
+                and pc.tp_enabled
+                and (pc.data_parallel_size == pc.dp_replicate_size)
+                and (pc.dp_replicate_size > 1)
+            )
+
+            # Keep original behavior for classic DDP, but also allow TP+DDP to wrap in DDP.
+            if self.multi_device and (not tp_enabled or tp_ddp_enabled):
+                if not tp_enabled and model_has_dtensor(model):
+                    raise ValueError(
+                        "Your model contains `DTensor` parameters, which is incompatible with DDP. Maybe you loaded your model with `device_map='auto'`? Specify `device_map='cuda'` or 'xpu' or 'cpu' instead."
+                    )
                 if any(p.requires_grad for p in model.parameters()):
-                    if not tp_enabled and model_has_dtensor(model):
-                        raise ValueError(
-                            "Your model contains `DTensor` parameters, which is incompatible with DDP. Maybe you loaded your model with `device_map='auto'`? Specify `device_map='cuda'` or 'xpu' or 'cpu' instead."
-                        )
                     kwargs = self.ddp_handler.to_kwargs() if self.ddp_handler is not None else {}
                     # TODO: Look at enabling native TP training directly with a proper config
                     if os.environ.get("ACCELERATE_BYPASS_DEVICE_MAP", "false") != "true":
@@ -1892,33 +1893,30 @@ class Accelerator:
                     else:
                         device_ids, output_device = None, None
 
-                    if self.parallelism_config and self.parallelism_config.device_mesh is not None:
+                    # TP+DDP only: set DDP to use dp_replicate process-group from the device mesh.
+                    if tp_ddp_enabled and pc is not None and pc.device_mesh is not None:
                         try:
-                            dp_pg = self.parallelism_config.device_mesh.get_group("dp_replicate")
+                            dp_pg = pc.device_mesh.get_group("dp_replicate")
                             kwargs["process_group"] = dp_pg
                         except Exception:
                             logger.warning(
                                 "Couldn't set the process group for DDP from the device mesh. Proceeding with the default process group."
                             )
-                    # if tp_enabled:
-                    #     from torch.distributed.tensor.parallel.ddp import _pre_dp_module_transform
-
-                    #     _pre_dp_module_transform(model)
 
                     model = torch.nn.parallel.DistributedDataParallel(
                         model, device_ids=device_ids, output_device=output_device, **kwargs
                     )
                     if self.ddp_handler is not None:
                         self.ddp_handler.register_comm_hook(model)
-            elif self.parallelism_config and self.parallelism_config.tp_enabled and not dp_enabled:
+            elif pc and pc.tp_enabled:
                 if not hasattr(model, "tp_size"):
                     raise NotImplementedError(
                         "Model should undergo tensor parallel before passing it to accelerate."
                         "You can use .from_pretrained(..., tp_plan='auto') if the model supports"
                     )
-                if model.tp_size != self.parallelism_config.tp_size:
+                if model.tp_size != pc.tp_size:
                     raise ValueError(
-                        f"tp_size in the plugin {self.parallelism_config.tp_size} should be same as model's tp size {model.tp_size}"
+                        f"tp_size in the plugin {pc.tp_size} should be same as model's tp size {model.tp_size}"
                     )
             elif self.is_fsdp2:
                 raise ValueError(

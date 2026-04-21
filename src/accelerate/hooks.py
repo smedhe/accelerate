@@ -53,7 +53,7 @@ def _compiler_disable(fn):
     return wrapper
 
 
-_accelerate_added_attributes = ["to", "cuda", "npu", "xpu", "mlu", "sdaa", "musa"]
+_accelerate_added_attributes = ["to", "cuda", "npu", "qaic", "xpu", "mlu", "sdaa", "musa"]
 
 
 class ModelHook:
